@@ -109,7 +109,6 @@ const resolveFunctions = {
 		},
     // real hack : Barge Salary
     listBarge(root,{dateStart,dateEnd}){
-      var arr=[]
       let query = Documents.find( { $and: [ { dateStart: { $gte: dateStart } }, { dateEnd: { $lte: dateEnd } } ]},{_id:0}).map((item) => item._id)
       let list = PositionBarges.find({"bargeId":{$in:query}}).fetch()
       let value = __.uniqBy(list, 'positionId');
@@ -117,11 +116,10 @@ const resolveFunctions = {
       return value;
     },
     listMember(root,{dateStart,dateEnd}){
-      var arr=[]
       let query = Documents.find( { $and: [ { dateStart: { $gte: dateStart } }, { dateEnd: { $lte: dateEnd } } ]},{_id:0}).map((item) => item._id)
       let list = MemberBarges.find({"bargeId":{$in:query}}).fetch()
       let value = __.uniqBy(list, 'memberId');
-      __.forEach(value,(item)=>item.listBarges=query)
+      __.forEach(value,(item)=>item.listBargeId=query)
       return value;
     },
   },
@@ -312,6 +310,37 @@ const resolveFunctions = {
             item.coefficientPosition = cp.coefficientPosition
             item.positionId = root.positionId
             item.total = item.totalDate * item.coefficientPosition * root.coefficientBarge * item.statusSalary;
+          }
+      })
+      return query;
+    }
+  },
+  ListMemberOFBarge :{
+    listBarges(root){
+      let query = Documents.find({"_id":{$in:root.listBargeId}}).fetch();
+      __.forEach(query,(item)=>{
+        item.memberId = root.memberId
+      })
+      return query;
+    }
+  },
+  BargeMember :{
+    salaryActive(root){
+      let query = CalendarActivities.find({"bargeId":root._id}).fetch();
+      __.forEach(query,(item,idx)=>{
+        let cp = SalaryDetails.findOne({$and:[{activityId:item._id},{memberId:root.memberId}]});
+        if(!cp)
+        {
+            query.splice(idx,1)
+        }
+          else {
+            let po = PositionBarges.findOne({$and:[{bargeId:root._id},{positionId:cp.positionId}]})
+            if(po)
+              item.position = po.name
+              else {
+                item.position =''
+              }
+            item.totalSalary = (item.dateEnd - item.dateStart) * cp.coefficientPosition * root.coefficientBarge * item.statusSalary;
           }
       })
       return query;

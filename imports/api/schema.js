@@ -92,6 +92,9 @@ const schema = [`
   }
   type SalaryActivity {
     statusName:String
+    dateStart:Float
+    dateEnd:Float
+    position:String
     totalSalary:Float
   }
 
