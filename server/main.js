@@ -11,6 +11,8 @@ import  '../imports/api/task'
 import {Posts} from '../imports/api/post'
 import {Comments} from '../imports/api/comments'
 //Collection for Barge Salary
+import {Barges} from '../imports/api/barge'
+import {Ships} from '../imports/api/ship'
 import {CalendarActivities} from '../imports/api/calendarActivities.js'
 import {Members} from '../imports/api/members'
 import {Positions} from '../imports/api/positions'

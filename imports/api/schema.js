@@ -35,77 +35,68 @@ const schema = [`
     userId: String
     user:User
   }
-  type Status {
+  type MemberPositionBarge {
+    _id:String
+    membersId:[String]
+    positionsId:[String]
+    documentsId:[String]
+    statusId:[String]
+    status:[Status]
+    documents:[Document]
+    salarymembers:[MemberSalary]
+  }
+  type MemberSalary {
     _id:String
     name:String
-    statusSalary:Float
+    documentsId:[String]
+    documents:[DocumentActivity]
   }
-  type Activity {
+  type DocumentActivity {
     _id:String
-    bargeId:String
-    positionId:String
-    dateStart:String
-    dateEnd:String
-    totalDate:Float
-    coefficientPosition:Float
-    statusId:String
-    statusName:String
-    statusSalary:Float
-    total:Float
-  }
-  type Detail {
-    _id:String
-    activityId:String
-    memberId:String
-    positionId:String
-  }
-  type Member {
-    _id:String
-    name:String
-  }
-  type ListPositionOFBarge {
-    positionId:String
-    name:String
-    listBarges:[String]
-    barges:[Barge]
-  }
-  type Barge{
-    _id:String
-    dateStart:String
-    dateEnd:String
-    product:String
-    coefficientBarge:Float
-    positionId:String
-    activities:[Activity]
-  }
-  type ListMemberOFBarge {
-    memberId:String
-    name:String
-    listBargeId:[String]
-    listBarges:[BargeMember]
-  }
-  type BargeMember {
-    _id:String
-    coefficientBarge:Float
     memberId:String
     salaryActive:[SalaryActivity]
   }
   type SalaryActivity {
-    statusName:String
-    dateStart:Float
-    dateEnd:Float
-    position:String
-    totalSalary:Float
+    _id:String
+   statusName:String
+   timeStart:Float
+   timeEnd:Float
+   statusSalary:Float
+   coefficientBarge:Float
+   memberId:String
+   salary:[SalaryMemberDocument]
+ }
+ type SalaryMemberDocument {
+   positionName:String
+   totalSalary:Float
+ }
+  type Status {
+    _id:String,
+    name:String
   }
-
+  type Document {
+    _id:String
+    timeStart:Float
+    timeEnd:Float
+    product:String
+    activities:[Activity]
+  }
+  type Activity {
+    _id:String
+    timeStart:Float
+    timeEnd:Float
+    totalTime:Float
+    statusId:String
+    statusName:String
+    statusSalary:Float
+    coefficientBarge:Float
+  }
   # the schema allows the following query:
   type Query {
     posts(offset: Int, limit: Int): [Post],
     comments(postId: String, offset: Int, limit: Int): [Comment],
     notification(userId: String): [Note],
-    listBarge(dateStart:Float,dateEnd:Float):[ListPositionOFBarge],
-    listMember(dateStart:Float,dateEnd:Float):[ListMemberOFBarge],
-    status:[Status],
+    bargerSalary(bargeId:String,timeStart:Float,timeEnd:Float):MemberPositionBarge
   }
   # this schema allows the following mutation:
   type Mutation {

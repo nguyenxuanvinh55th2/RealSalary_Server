@@ -12,6 +12,8 @@ import {Status} from './status'
 import {Documents} from './documents'
 import {PositionBarges} from './positionBarges'
 import {MemberBarges} from './memberBarges'
+import {Ships} from './ship'
+import {Barges} from './barge'
 import __ from 'lodash'
 
 getUserInfo = (userId) => {
@@ -108,20 +110,25 @@ const resolveFunctions = {
 			return result;
 		},
     // real hack : Barge Salary
-    listBarge(root,{dateStart,dateEnd}){
-      let query = Documents.find( { $and: [ { dateStart: { $gte: dateStart } }, { dateEnd: { $lte: dateEnd } } ]},{_id:0}).map((item) => item._id)
-      let list = PositionBarges.find({"bargeId":{$in:query}}).fetch()
-      let value = __.uniqBy(list, 'positionId');
-      __.forEach(value,(item)=>item.listBarges=query)
-      return value;
-    },
-    listMember(root,{dateStart,dateEnd}){
-      let query = Documents.find( { $and: [ { dateStart: { $gte: dateStart } }, { dateEnd: { $lte: dateEnd } } ]},{_id:0}).map((item) => item._id)
-      let list = MemberBarges.find({"bargeId":{$in:query}}).fetch()
-      let value = __.uniqBy(list, 'memberId');
-      __.forEach(value,(item)=>item.listBargeId=query)
-      return value;
-    },
+    bargerSalary(root,{bargeId,timeStart,timeEnd}){
+      let query = Barges.findOne({_id:bargeId});
+      let activities = CalendarActivities.find({$and:[{timeStart:{$gte:timeStart}}, {timeEnd:{$lte:timeEnd}}, {bargeId:bargeId}]}).fetch();
+      let value = __.uniqBy(activities, 'documentId');
+      let iddocument = value.map((item) => item.documentId);
+      query.documentsId = Documents.find({$and:[{"_id":{$in:iddocument}},{"timeEnd":{$lte:timeEnd}}]}).map((item) => item._id)
+      let status = CalendarActivities.find({documentId:{$in:query.documentsId}}).fetch();
+      let distinctStatus = __.uniqBy(status,'statusId')
+      query.statusId =distinctStatus.map((item) => item.statusId);
+      query.status =[]
+      __.forEach(distinctStatus,(item)=>{
+        let ob ={
+          _id:item.statusId,
+          name:item.statusName
+        }
+        query.status.push(ob)
+      })
+      return query
+    }
   },
 
   Mutation: {
@@ -286,66 +293,62 @@ const resolveFunctions = {
     }
   },
   //for Barge salary
-  ListPositionOFBarge:{
-    barges(root){
-      let query = Documents.find({"_id":{$in:root.listBarges}}).fetch();
+  MemberPositionBarge:{
+    documents(root){
+      let query = Documents.find({_id:{$in:root.documentsId}}).fetch();
+      return query;
+    },
+    salarymembers(root)
+    {
+      let query = Members.find({_id:{$in:root.membersId}}).fetch();
       __.forEach(query,(item)=>{
-        item.positionId = root.positionId
+        item.documentsId = root.documentsId
       })
       return query;
     }
   },
-  Barge:{
+  Document:{
     activities(root){
-      let query = CalendarActivities.find({"bargeId":root._id}).fetch();
-      let list =[]
-      __.forEach(query,(item,idx)=>{
-        let cp = SalaryDetails.findOne({$and:[{activityId:item._id},{positionId:root.positionId}]});
-        if(!cp)
-        {
-            query.splice(idx,1)
-        }
-          else {
-            item.totalDate = item.dateEnd - item.dateStart
-            item.coefficientPosition = cp.coefficientPosition
-            item.positionId = root.positionId
-            item.total = item.totalDate * item.coefficientPosition * root.coefficientBarge * item.statusSalary;
-          }
-      })
-      return query;
-    }
-  },
-  ListMemberOFBarge :{
-    listBarges(root){
-      let query = Documents.find({"_id":{$in:root.listBargeId}}).fetch();
+      let query = CalendarActivities.find({documentId:root._id}).fetch()
       __.forEach(query,(item)=>{
-        item.memberId = root.memberId
+        item.totalTime = item.timeEnd - item.timeStart
       })
       return query;
     }
   },
-  BargeMember :{
+  MemberSalary:{
+    documents(root){
+      let query = Documents.find({_id:{$in:root.documentsId}}).fetch()
+      __.forEach(query,(item)=>{
+        item.memberId = root._id;
+      })
+      return query;
+    }
+  },
+  DocumentActivity :{
     salaryActive(root){
-      let query = CalendarActivities.find({"bargeId":root._id}).fetch();
+      let query = CalendarActivities.find({"documentId":root._id}).fetch();
       __.forEach(query,(item,idx)=>{
         let cp = SalaryDetails.findOne({$and:[{activityId:item._id},{memberId:root.memberId}]});
         if(!cp)
-        {
-            query.splice(idx,1)
-        }
+          query.splice(idx,1)
           else {
-            let po = PositionBarges.findOne({$and:[{bargeId:root._id},{positionId:cp.positionId}]})
-            if(po)
-              item.position = po.name
-              else {
-                item.position =''
-              }
-            item.totalSalary = (item.dateEnd - item.dateStart) * cp.coefficientPosition * root.coefficientBarge * item.statusSalary;
+            item.memberId=root.memberId
           }
       })
-      return query;
-    }
-  }
+     return query;
+   }
+ },
+ SalaryActivity:{
+   salary(root){
+     let query = SalaryDetails.find({$and:[{activityId:root._id},{memberId:root.memberId}]}).fetch()
+     __.forEach(query,(item)=>{
+       item.totalSalary = (root.timeEnd - root.timeStart) * item.coefficientPosition * root.coefficientBarge * root.statusSalary;
+     })
+     return query;
+   }
+ }
+
 };
 
 export default resolveFunctions;
